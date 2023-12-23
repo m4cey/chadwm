@@ -879,7 +879,7 @@ void configure(Client *c) {
 
 void configurenotify(XEvent *e) {
   Monitor *m;
-  /* Client *c; */
+  Client *c;
   XConfigureEvent *ev = &e->xconfigure;
   int dirty;
 
@@ -892,9 +892,9 @@ void configurenotify(XEvent *e) {
       drw_resize(drw, sw, bh);
       updatebars();
       for (m = mons; m; m = m->next) {
-        /* for (c = m->clients; c; c = c->next) */
-        /*   if (c->isfullscreen) */
-        /*     resizeclient(c, m->mx, m->my, m->mw, m->mh); */
+        for (c = m->clients; c; c = c->next)
+          /* if (c->isfullscreengeometry) */
+          /*   resizeclient(c, m->mx, m->my, m->mw, m->mh); */
         resizebarwin(m);
       }
       focus(NULL);
@@ -1193,16 +1193,16 @@ void dragcfact(const Arg *arg) {
     resizemouse(arg);
     return;
   }
-#if !FAKEFULLSCREEN_PATCH
-#if FAKEFULLSCREEN_CLIENT_PATCH
-  if (c->isfullscreen &&
-      !c->fakefullscreen) /* no support resizing fullscreen windows by mouse */
-    return;
-#else
-  if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
-    return;
-#endif // FAKEFULLSCREEN_CLIENT_PATCH
-#endif // !FAKEFULLSCREEN_PATCH
+/* #if !FAKEFULLSCREEN_PATCH */
+/* #if FAKEFULLSCREEN_CLIENT_PATCH */
+/*   if (c->isfullscreen && */
+/*       !c->fakefullscreen) #<{(| no support resizing fullscreen windows by mouse |)}># */
+/*     return; */
+/* #else */
+/*   if (c->isfullscreen) #<{(| no support resizing fullscreen windows by mouse |)}># */
+/*     return; */
+/* #endif // FAKEFULLSCREEN_CLIENT_PATCH */
+/* #endif // !FAKEFULLSCREEN_PATCH */
   restack(selmon);
 
   if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
@@ -3182,6 +3182,7 @@ void togglefullscr(const Arg *arg) {
   if (selmon->sel)
     setfullscreen(selmon->sel, !selmon->sel->isfullscreen);
 }
+
 void togglefullscrgeometry(const Arg *arg) {
   if (selmon->sel)
     setfullscreengeomtry(selmon->sel, !selmon->sel->isfullscreengeometry);
