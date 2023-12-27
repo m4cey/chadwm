@@ -7,7 +7,7 @@
 static float mfact                       = 0.50; /* factor of master area size [0.05..0.95] */
 static int nmaster                       = 1;    /* number of clients in master area */
 static int resizehints                   = 0;    /* 1 means respect size hints in tiled resizals */
-static const int lockfullscreen          = 0;    /* 1 will force focus on the fullscreen window */
+static const int lockfullscreen          = 1;    /* 1 will force focus on the fullscreen window */
 
 /* appearance */
 static unsigned int borderpx             = 2;    /* border pixel of windows */
@@ -66,7 +66,6 @@ static char red[]           = "#e06c75";
 static char orange[]        = "#caaa6a";
 static char yellow[]        = "#EBCB8B";
 static char pink[]          = "#c678dd";
-static char col_borderbar[] = "#1e222a"; // inner border
 
 /*
  * Xresources preferences to load at startup
@@ -83,7 +82,6 @@ ResourcePref resources[] = {
 	{ "color6",             STRING,  &orange },
 	{ "color7",             STRING,  &gray1 },
 	{ "color8",             STRING,  &gray2 },
-	{ "background",         STRING,  &col_borderbar },
 
 	{ "font",               STRING,  &primary_font },
 	{ "borderpx",           INTEGER, &borderpx },
@@ -311,7 +309,7 @@ static const Key keys[] = {
     { MODKEY | ShiftMask,               XK_bracketleft,
 		                                              spawn,          SHCMD("playerctl position 60-")},
     { MODKEY,                           XK_bracketright,
-		                                              spawn,          SHCMD("playerctl position 10-")},
+		                                              spawn,          SHCMD("playerctl position 10+")},
     { MODKEY | ShiftMask,               XK_bracketright,
 		                                              spawn,          SHCMD("playerctl position 60+")},
     { MODKEY | ShiftMask,               XK_comma,   spawn,          SHCMD("playerctl position 0")},
@@ -321,6 +319,8 @@ static const Key keys[] = {
 
 	 // restart dwm
 	 {MODKEY|ShiftMask,                  XK_q,       restart,        {0} },
+	 // reload Xresources
+	 {MODKEY|ShiftMask,                  XK_r,       load_xresources,{0} },
 
     // hide & restore windows
     { MODKEY,                           XK_e,       hidewin,        {0} },

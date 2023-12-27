@@ -379,7 +379,7 @@ static int xerror(Display *dpy, XErrorEvent *ee);
 static int xerrordummy(Display *dpy, XErrorEvent *ee);
 static int xerrorstart(Display *dpy, XErrorEvent *ee);
 static void zoom(const Arg *arg);
-static void load_xresources(void);
+static void load_xresources(const Arg *arg);
 static void resource_load(XrmDatabase db, char *name, enum resource_type rtype, void *dst);
 
 /* variables */
@@ -412,7 +412,7 @@ static void (*handler[LASTEvent])(XEvent *) = {
 static Atom wmatom[WMLast], netatom[NetLast], xatom[XLast];
 static int running = 1;
 static Cur *cursor[CurLast];
-static Clr **scheme, clrborder;
+static Clr **scheme;
 static Display *dpy;
 static Drw *drw;
 static Monitor *mons, *selmon;
@@ -893,8 +893,8 @@ void configurenotify(XEvent *e) {
       updatebars();
       for (m = mons; m; m = m->next) {
         for (c = m->clients; c; c = c->next)
-          /* if (c->isfullscreengeometry) */
-          /*   resizeclient(c, m->mx, m->my, m->mw, m->mh); */
+          if (c->isfullscreen)
+            resizeclient(c, c->x, c->y, c->w, c->h);
         resizebarwin(m);
       }
       focus(NULL);
@@ -1193,16 +1193,6 @@ void dragcfact(const Arg *arg) {
     resizemouse(arg);
     return;
   }
-/* #if !FAKEFULLSCREEN_PATCH */
-/* #if FAKEFULLSCREEN_CLIENT_PATCH */
-/*   if (c->isfullscreen && */
-/*       !c->fakefullscreen) #<{(| no support resizing fullscreen windows by mouse |)}># */
-/*     return; */
-/* #else */
-/*   if (c->isfullscreen) #<{(| no support resizing fullscreen windows by mouse |)}># */
-/*     return; */
-/* #endif // FAKEFULLSCREEN_CLIENT_PATCH */
-/* #endif // !FAKEFULLSCREEN_PATCH */
   restack(selmon);
 
   if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
@@ -1492,7 +1482,6 @@ void drawbar(Monitor *m) {
   unsigned int i, occ = 0, urg = 0;
   Client *c;
 
-  XSetForeground(drw->dpy, drw->gc, clrborder.pixel);
   if(floatbar){
     XFillRectangle(drw->dpy, drw->drawable, drw->gc, 0, 0, m->ww - m->gappov * 2, bh);
   }else{
@@ -1808,7 +1797,7 @@ void focusmon(const Arg *arg) {
 void focusstack(const Arg *arg) {
   Client *c = NULL, *i;
 
-  if (!selmon->sel || (selmon->sel->isfullscreen && lockfullscreen))
+  if (!selmon->sel || (selmon->sel->isfullscreengeometry && lockfullscreen))
     return;
   if (arg->i > 0) {
     for (c = selmon->sel->next; c && (!ISVISIBLE(c) || HIDDEN(c)); c = c->next)
@@ -2313,7 +2302,7 @@ placemouse(const Arg *arg)
 
 	if (!(c = selmon->sel) || !c->mon->lt[c->mon->sellt]->arrange) /* no support for placemouse when floating layout is used */
 		return;
-	if (c->isfullscreen) /* no support placing fullscreen windows by mouse */
+	if (c->isfullscreengeometry) /* no support placing fullscreen windows by mouse */
 		return;
 	restack(selmon);
 	prevr = c;
@@ -2966,7 +2955,6 @@ void setup(void) {
   scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], 3);
   for (i = 0; i < LENGTH(colors); i++)
     scheme[i] = drw_scm_create(drw, colors[i], 3);
-  drw_clr_create(drw, &clrborder, col_borderbar);
   /* init system tray */
   updatesystray();
   /* init bars */
@@ -3907,7 +3895,7 @@ resource_load(XrmDatabase db, char *name, enum resource_type rtype, void *dst)
 }
 
 void
-load_xresources(void)
+load_xresources(const Arg *arg)
 {
 	Display *display;
 	char *resm;
@@ -3923,6 +3911,16 @@ load_xresources(void)
 	for (p = resources; p < resources + LENGTH(resources); p++)
 		resource_load(db, p->name, p->type, p->dst);
 	XCloseDisplay(display);
+  /* update appearance */
+	if (drw && scheme) {
+		for (int i = 0; i < LENGTH(colors) + 1; i++)
+			free(scheme[i]);
+		free(scheme);
+		scheme = ecalloc(LENGTH(colors) + 1, sizeof(Clr *));
+		scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], 3);
+		for (int i = 0; i < LENGTH(colors); i++)
+			scheme[i] = drw_scm_create(drw, colors[i], 3);
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -3941,7 +3939,7 @@ int main(int argc, char *argv[]) {
   }
   checkotherwm();
   XrmInitialize();
-  load_xresources();
+  load_xresources(0);
   // patch xresources font
   fonts[0] = primary_font;
   setup();
